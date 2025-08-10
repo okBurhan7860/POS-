@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, CreditCard, DollarSign, Smartphone } from 'lucide-react';
 import { CartItem, Transaction } from '../../types';
+import { addTransaction } from '../../services/firebaseService';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -33,26 +34,34 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     setProcessing(true);
 
-    const transaction: Transaction = {
-      id: `txn_${Date.now()}`,
-      items: cart,
-      subtotal,
-      tax,
-      total,
-      paymentMethod,
-      cashierId,
-      timestamp: new Date().toISOString(),
-      customerPaid: paymentMethod === 'cash' ? parseFloat(customerPaid) : total,
-      change,
-    };
+    try {
+      const transactionData = {
+        items: cart,
+        subtotal,
+        tax,
+        total,
+        paymentMethod,
+        cashierId,
+        customerPaid: paymentMethod === 'cash' ? parseFloat(customerPaid) : total,
+        change,
+      };
 
-    // Simulate processing delay
-    setTimeout(() => {
+      const transactionId = await addTransaction(transactionData);
+      
+      const transaction: Transaction = {
+        id: transactionId,
+        ...transactionData,
+        timestamp: new Date().toISOString(),
+      };
+
       onComplete(transaction);
-      setProcessing(false);
       setCustomerPaid('');
-      onClose();
-    }, 1500);
+    } catch (error) {
+      console.error('Error completing transaction:', error);
+      alert('Error completing transaction. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (!isOpen) return null;

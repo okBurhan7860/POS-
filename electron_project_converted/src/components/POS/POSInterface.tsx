@@ -19,10 +19,10 @@ interface POSInterfaceProps {
   onClearCart: () => void;
   getCartTotal: () => number;
   getItemCount: () => number;
-  onAddProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onUpdateProduct: (productId: string, updates: Partial<Product>) => void;
-  onDeleteProduct: (productId: string) => void;
-  onFindProductByBarcode: (barcode: string) => Product | undefined;
+  onAddProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Product>;
+  onUpdateProduct: (productId: string, updates: Partial<Product>) => Promise<void>;
+  onDeleteProduct: (productId: string) => Promise<void>;
+  onFindProductByBarcode: (barcode: string) => Promise<Product | null>;
 }
 
 export const POSInterface: React.FC<POSInterfaceProps> = ({
@@ -60,13 +60,18 @@ export const POSInterface: React.FC<POSInterfaceProps> = ({
     onClearCart();
   };
 
-  const handleBarcodeScanned = (result: BarcodeResult) => {
-    const product = onFindProductByBarcode(result.decodedText);
-    if (product) {
-      onAddToCart(product, 1);
-      // Show success message or highlight the product
-    } else {
-      alert(`Product with barcode ${result.decodedText} not found`);
+  const handleBarcodeScanned = async (result: BarcodeResult) => {
+    try {
+      const product = await onFindProductByBarcode(result.decodedText);
+      if (product) {
+        onAddToCart(product, 1);
+        // Show success message or highlight the product
+      } else {
+        alert(`Product with barcode ${result.decodedText} not found`);
+      }
+    } catch (error) {
+      console.error('Error finding product:', error);
+      alert('Error finding product. Please try again.');
     }
   };
 
